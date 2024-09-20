@@ -14,55 +14,56 @@ import wq from ".//images/wq.png";
 import br from ".//images/br.png";
 import wr from ".//images/wr.png";
 
-// Create a class component for the chessboard
-class Board extends Component {
-  chess = new Chess(); // Create a new Chess instance
+interface BoardProps {
+  onGameOver: (isGameOver: boolean) => void;
+}
+
+class Board extends Component<BoardProps> {
+  chess = new Chess();
   state = {
-    board: this.make2DArray(), // Set the initial chessboard with pieces
-    selectedPiece: null as { row: number; col: number } | null, // Track the selected piece
-    isValidMove: false, // Track if the move is valid
+    board: this.make2DArray(),
+    selectedPiece: null as { row: number; col: number } | null,
+    isValidMove: false,
+    isWhiteTurn: true,
   };
 
-  // Method to create the initial chessboard array
+  static defaultProps = {
+    onGameOver: () => {},
+  };
+
   make2DArray(): string[][] {
     const mainArray: string[][] = [];
-
-    // Initialize the board with empty strings
     for (let i = 0; i < 8; i++) {
       mainArray[i] = [];
       for (let j = 0; j < 8; j++) {
-        mainArray[i][j] = ""; // Empty spots represented by an empty string
+        mainArray[i][j] = "";
       }
     }
 
-    // Assign black pieces ('b' prefix for black pieces)
-    mainArray[0][0] = "br"; // Black Rook
-    mainArray[0][1] = "bn"; // Black Knight
-    mainArray[0][2] = "bb"; // Black Bishop
-    mainArray[0][3] = "bq"; // Black Queen
-    mainArray[0][4] = "bk"; // Black King
-    mainArray[0][5] = "bb"; // Black Bishop
-    mainArray[0][6] = "bn"; // Black Knight
-    mainArray[0][7] = "br"; // Black Rook
+    mainArray[0][0] = "br";
+    mainArray[0][1] = "bn";
+    mainArray[0][2] = "bb";
+    mainArray[0][3] = "bq";
+    mainArray[0][4] = "bk";
+    mainArray[0][5] = "bb";
+    mainArray[0][6] = "bn";
+    mainArray[0][7] = "br";
 
-    // Assign black pawns
     for (let j = 0; j < 8; j++) {
-      mainArray[1][j] = "bp"; // Black Pawn
+      mainArray[1][j] = "bp";
     }
 
-    // Assign white pieces ('w' prefix for white pieces)
-    mainArray[7][0] = "wr"; // White Rook
-    mainArray[7][1] = "wn"; // White Knight
-    mainArray[7][2] = "wb"; // White Bishop
-    mainArray[7][3] = "wq"; // White Queen
-    mainArray[7][4] = "wk"; // White King
-    mainArray[7][5] = "wb"; // White Bishop
-    mainArray[7][6] = "wn"; // White Knight
-    mainArray[7][7] = "wr"; // White Rook
+    mainArray[7][0] = "wr";
+    mainArray[7][1] = "wn";
+    mainArray[7][2] = "wb";
+    mainArray[7][3] = "wq";
+    mainArray[7][4] = "wk";
+    mainArray[7][5] = "wb";
+    mainArray[7][6] = "wn";
+    mainArray[7][7] = "wr";
 
-    // Assign white pawns
     for (let j = 0; j < 8; j++) {
-      mainArray[6][j] = "wp"; // White Pawn
+      mainArray[6][j] = "wp";
     }
 
     return mainArray;
@@ -95,30 +96,104 @@ class Board extends Component {
       case "bp":
         return <Image src={bp} alt="Black Pawn" width={60} height={60} />;
       default:
-        return piece ? <span>{piece}</span> : null; // Default to showing the text or nothing if no piece
+        return piece ? <span>{piece}</span> : null;
     }
+  }
+
+  makeAIMove = () => {
+    const possibleMoves = this.chess.moves({ verbose: true });
+    let madeAMove = false;
+    let aiMove;
+    possibleMoves.forEach((move) => {
+      if (move.to === "c6" && !madeAMove && move.from === "c7") {
+        this.chess.move(move);
+        aiMove = move;
+        madeAMove = true;
+      } else if (move.to === "d5" && !madeAMove && move.from === "d7") {
+        this.chess.move(move);
+        aiMove = move;
+        madeAMove = true;
+      }
+    });
+    if (!madeAMove) {
+      const randomMove =
+        possibleMoves[Math.floor(Math.random() * possibleMoves.length)];
+      this.chess.move(randomMove);
+      aiMove = randomMove;
+    }
+    if (aiMove) {
+      const newBoard = this.state.board.map((row) => row.slice());
+      const fromSquare = this.getSquareCoordinates(aiMove.from);
+      const toSquare = this.getSquareCoordinates(aiMove.to);
+      newBoard[toSquare.row][toSquare.col] =
+        newBoard[fromSquare.row][fromSquare.col];
+      newBoard[fromSquare.row][fromSquare.col] = "";
+
+      this.setState({
+        board: newBoard,
+        isWhiteTurn: true,
+      });
+    }
+  };
+
+  getSquareCoordinates(square: string): { row: number; col: number } {
+    const letters = "abcdefgh";
+    const col = letters.indexOf(square[0]);
+    const row = 8 - parseInt(square[1]);
+    return { row, col };
   }
 
   handleClick = (row: number, col: number) => {
     const { selectedPiece, board } = this.state;
 
     if (selectedPiece) {
-      // Move piece logic
-      const newBoard = [...board];
-
-      // Move the piece to the new position
-      newBoard[row][col] = board[selectedPiece.row][selectedPiece.col];
-      newBoard[selectedPiece.row][selectedPiece.col] = ""; // Empty the old position
-
-      // Reset selection and state
-      this.setState({
-        board: newBoard,
-        selectedPiece: null,
-      });
+      if (selectedPiece.row === row && selectedPiece.col === col) {
+        this.setState({
+          selectedPiece: null,
+          isValidMove: false,
+        });
+      } else {
+        const moveFrom = this.getSquareName(
+          selectedPiece.row,
+          selectedPiece.col
+        );
+        const moveTo = this.getSquareName(row, col);
+        const move = this.chess.move({
+          from: moveFrom,
+          to: moveTo,
+          promotion: "q",
+        });
+        if (move) {
+          const newBoard = [...board];
+          newBoard[row][col] = board[selectedPiece.row][selectedPiece.col];
+          newBoard[selectedPiece.row][selectedPiece.col] = "";
+          this.setState({
+            board: newBoard,
+            selectedPiece: null,
+            isValidMove: false,
+            isWhiteTurn: false,
+          });
+          if (this.chess.isGameOver()) {
+            this.props.onGameOver(true);
+          }
+          setTimeout(this.makeAIMove, 500);
+        } else {
+          console.log("Invalid move");
+          this.setState({ selectedPiece: null, isValidMove: false });
+        }
+      }
     } else {
-      // Select piece logic
       if (board[row][col]) {
-        this.setState({ selectedPiece: { row, col } });
+        const possibleMoves = this.chess.moves({
+          verbose: true,
+        });
+
+        if (possibleMoves.length > 0) {
+          this.setState({
+            selectedPiece: { row, col },
+            isValidMove: true,
+          });
+        }
       }
     }
   };
@@ -129,7 +204,7 @@ class Board extends Component {
   }
 
   render() {
-    const { board } = this.state; // Access the board state
+    const { board } = this.state;
 
     return (
       <div className="chessboard-grid">
@@ -148,7 +223,6 @@ class Board extends Component {
                 }`}
                 onClick={() => this.handleClick(rowIndex, colIndex)}
               >
-                {/* Render the chess piece or image */}
                 {this.renderPiece(board[rowIndex][colIndex])}
               </button>
             ))}
@@ -158,5 +232,4 @@ class Board extends Component {
     );
   }
 }
-
 export default Board;

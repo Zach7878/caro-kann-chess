@@ -1,12 +1,8 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
-
-/* styles/ChessboardGrid.module.css */
 .chessboard-grid {
-  display: grid;
+  display: grid; /* Use grid layout for the chessboard */
   grid-template-columns: repeat(8, 1fr);
   grid-template-rows: repeat(8, 1fr);
+  left: 540px;
   width: 600px;
   height: 600px;
   gap: 1px; /* Small gap between buttons */
@@ -14,6 +10,12 @@
 
 .row {
   display: contents; /* Allows for grid items to align properly */
+}
+.overlay {
+  font-size: 100px;
+  color: greenyellow;
+  top: 200px;
+  position: absolute;
 }
 
 .button {
