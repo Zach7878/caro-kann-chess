@@ -1,0 +1,38 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* styles/ChessboardGrid.module.css */
+.chessboard-grid {
+  display: grid;
+  grid-template-columns: repeat(8, 1fr);
+  grid-template-rows: repeat(8, 1fr);
+  width: 600px;
+  height: 600px;
+  gap: 1px; /* Small gap between buttons */
+}
+
+.row {
+  display: contents; /* Allows for grid items to align properly */
+}
+
+.button {
+  width: 100%;
+  height: 100%;
+  padding-left: 6px;
+  border: 1px solid #ddd;
+  background-color: white;
+  cursor: pointer;
+}
+
+.button.white {
+  background-color: #f0f0f0;
+}
+
+.button.black {
+  background-color: #333;
+  color: white;
+}
+.button.selected {
+  border: 2px solid red;
+}
